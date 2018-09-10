@@ -18,6 +18,10 @@ func main() {
 	executeInstruction(0x61FF)
 	executeInstruction(0x62FF)
 	executeInstruction(0x8125)
+
+  	for(;;) {
+  		emulateCycle()
+  	}
 }
 
 func initialize() {
@@ -25,7 +29,9 @@ func initialize() {
 }
 
 func emulateCycle() {
-
+	// fetch
+	opcode = memory[PC] << 8 | memory[PC + 1];
+	executeInstruction(opcode)
 }
 
 func executeInstruction(op uint16) {
@@ -93,6 +99,8 @@ func executeInstruction(op uint16) {
 					}
 					VF = carry
 					V[x] = byte(result)
+
+					PC += 2
 				case 0x8005:
 					result := uint16(V[x]) - uint16(V[y])
 
@@ -102,7 +110,8 @@ func executeInstruction(op uint16) {
 					}
 
 					V[x] = byte(result)
-					fmt.Println(V[x])
+
+					PC += 2
 				case 0x8006:
 
 				case 0x8007:
@@ -114,7 +123,8 @@ func executeInstruction(op uint16) {
 					}
 
 					V[x] = byte(result)
-					fmt.Println(V[x])
+					
+					PC += 2
 
 				case 0x800E:
 
@@ -137,7 +147,9 @@ func executeInstruction(op uint16) {
 			x := (op & 0x0F00) >> 8
 			kk := op & 0x00FF
 			rand := rand.Intn(255)
-			V[x] = rand & kk		
+			V[x] = rand & kk	
+					
+			PC += 2	
 
 		case 0xD000:
 			/*Dxyn - DRW Vx, Vy, nibble
