@@ -2,9 +2,13 @@ package main
 
 import(
 	"fmt"
+	"math/rand"
+    "io/ioutil"
+    "time"
+    "os"
 )
 
-var oPCode uint16
+var opcode uint16
 var memory [4096]byte
 
 var stack[16]uint16
@@ -15,13 +19,33 @@ var I uint16
 var PC uint16
 
 func main() {
-	executeInstruction(0x61FF)
-	executeInstruction(0x62FF)
-	executeInstruction(0x8125)
 
-  	for(;;) {
+	loadPong()
+
+  	for {
   		emulateCycle()
   	}
+}
+
+func loadPong() {
+	// load at 0x200
+
+	dat, err := ioutil.ReadFile("./roms/pong.rom")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	loadAddress := int(0x200)
+	PC = uint16(loadAddress)
+
+	for i := 0; i < len(dat); i++ {
+		memory[loadAddress + i] = dat[i]
+		fmt.Printf("%x\n", memory[loadAddress + i] )
+	}
+
+	fmt.Printf("STARTING MEMORY %x \n", memory[0x200])
+	fmt.Printf("STARTING PC %x \n", PC)
+	fmt.Printf("STARTING memory[PC] %x \n", memory[PC])
 }
 
 func initialize() {
@@ -29,12 +53,12 @@ func initialize() {
 }
 
 func emulateCycle() {
-	// fetch
-	opcode = memory[PC] << 8 | memory[PC + 1];
+	opcode = uint16(memory[PC]) << 8 | uint16(memory[PC + 1])
 	executeInstruction(opcode)
 }
 
 func executeInstruction(op uint16) {
+	fmt.Printf("Op: %x\n", op)
 	switch(op & 0xF000) {
 		case 0x00E0: 
 			fmt.Println("CLS")
@@ -51,18 +75,27 @@ func executeInstruction(op uint16) {
 		case 0x3000:
 			x := (op & 0x0F00) >> 8
 			kk := (op & 0x00FF)
-			if (V[x] ==  kk) {
+
+			PC += 2
+
+			if (V[x] == byte(kk)) {
 				PC += 2
 			}
 		case 0x4000:
 			x := (op & 0x0F00) >> 8
 			kk := (op & 0x00FF)
-			if (V[x] !=  kk) {
+
+			PC += 2
+
+			if (V[x] != byte(kk)) {
 				PC += 2
 			}
 		case 0x5000:
 			x := (op & 0x0F00) >> 8
 			y := (op & 0x00F0) >> 4
+
+			PC += 2
+
 			if (V[x] ==  V[y]) {
 				PC += 2
 			}
@@ -71,10 +104,15 @@ func executeInstruction(op uint16) {
 			kk := op & 0x00FF
 			fmt.Println(kk)
 			V[x] = byte(kk)
+
+			PC += 2
+
 		case 0x7000:
 			addr := (op & 0x0F00) >> 8
 			kk := byte(op)
 			V[addr] = V[addr] + byte(kk)
+			
+			PC += 2
 		case 0x8000:
 			x := (op & 0x0F00) >> 8
 			y := (op & 0x00F0) >> 4
@@ -83,12 +121,20 @@ func executeInstruction(op uint16) {
 					
 				case 0x8000:
 					V[x] = V[y]
+
+					PC += 2	
 				case 0x8001:
 					V[x] = V[x] | V[y]
+
+					PC += 2	
 				case 0x8002:
 					V[x] = V[x] & V[y]
+
+					PC += 2	
 				case 0x8003:
 					V[x] = V[x] ^ V[y]
+
+					PC += 2	
 				case 0x8004:
 					result := uint16(V[x]) + uint16(V[y])
 
@@ -114,6 +160,8 @@ func executeInstruction(op uint16) {
 					PC += 2
 				case 0x8006:
 
+					PC += 2	
+
 				case 0x8007:
 					result := uint16(V[y]) - uint16(V[x])
 
@@ -127,6 +175,7 @@ func executeInstruction(op uint16) {
 					PC += 2
 
 				case 0x800E:
+					PC += 2	
 
 			}
 
@@ -139,15 +188,19 @@ func executeInstruction(op uint16) {
 		case 0xA000:
 			nnn := op & 0x0FFF
 			I = nnn
+
+			PC += 2	
 		case 0xB000:
 			nnn := op & 0x0FFF
-			PC = nnn + V[0]
+			PC = nnn + uint16(V[0])
+
+			PC += 2	
 		case 0xC000:
 			rand.Seed(time.Now().UnixNano())
 			x := (op & 0x0F00) >> 8
 			kk := op & 0x00FF
 			rand := rand.Intn(255)
-			V[x] = rand & kk	
+			V[x] = byte(rand) & byte(kk)	
 					
 			PC += 2	
 
@@ -168,7 +221,12 @@ Sprites are XORed onto the existing screen. If this causes any pixels to be eras
  			for i := uint16(0); i < n; i++ {
  				Display(memory[i], V[x], V[y])	
  			}
+					
+			PC += 2	
 		case 0xE000:
+			//TODO: Might have to remove the line below later
+			PC += 2	
+
 			switch(op & 0xF0FF) {
 				case 0xE09E:
 
@@ -182,45 +240,64 @@ Sprites are XORed onto the existing screen. If this causes any pixels to be eras
 	        switch(op & 0xF0FF) {
 	            case 0xF007:
 	            	fmt.Println("Not implemented")
+					
+					PC += 2	
 	            case 0xF00A:
 	            	fmt.Println("Not implemented")
+					
+					PC += 2	
 
 	            case 0xF015:
 	            	fmt.Println("Not implemented")
+					
+					PC += 2	
 
 	            case 0xF018:
 	            	fmt.Println("Not implemented")
+					
+					PC += 2	
 
 	            case 0xF01E:
 	            	fmt.Println("Not implemented")
+					
+					PC += 2	
 
 	            case 0xF029:
 	            	fmt.Println("Not implemented")
+					
+					PC += 2	
 
 	            case 0xF033:
 	            	fmt.Println("Not implemented")
+					
+					PC += 2	
 
 	            case 0xF055:
 
 		            for i := uint16(0); byte(i) <= byte(x); i++ {
 		            	memory[I+i] = V[i] 
 		            }
+					
+					PC += 2	
 
 	            case 0xF065:
 
 		            for i := uint16(0); byte(i) <= byte(x); i++ {
 		            	V[i] = memory[I+i]
 		            }
+					
+					PC += 2	
 	            default:
 	            	fmt.Println("Default")
 	        }
 
 		default:
-			fmt.Println("Default")
+			fmt.Println("Wrong opcode, leaving the program")
+			os.Exit(0)
 	}
 }
 
-func Display(I uint16, Vx byte, Vy byte) {
+func Display(I byte, Vx byte, Vy byte) {
 
 }
 
