@@ -40,10 +40,10 @@ func loadPong() {
 
 	for i := 0; i < len(dat); i++ {
 		memory[loadAddress + i] = dat[i]
-		fmt.Printf("%x\n", memory[loadAddress + i] )
+		fmt.Printf("%x ", memory[loadAddress + i] )
 	}
 
-	fmt.Printf("STARTING MEMORY %x \n", memory[0x200])
+	fmt.Printf("\nSTARTING MEMORY %x \n", memory[0x200])
 	fmt.Printf("STARTING PC %x \n", PC)
 	fmt.Printf("STARTING memory[PC] %x \n", memory[PC])
 }
@@ -193,8 +193,6 @@ func executeInstruction(op uint16) {
 		case 0xB000:
 			nnn := op & 0x0FFF
 			PC = nnn + uint16(V[0])
-
-			PC += 2	
 		case 0xC000:
 			rand.Seed(time.Now().UnixNano())
 			x := (op & 0x0F00) >> 8
