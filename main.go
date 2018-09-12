@@ -6,21 +6,35 @@ import(
     "io/ioutil"
     "time"
     "os"
+    "github.com/nsf/termbox-go"
 )
 
 var opcode uint16
+
 var memory [4096]byte
 
 var stack[16]uint16
+
 var SP uint16
+
 var V [16]byte
+
 var VF byte
+
 var I uint16
+
+// Program Counter
 var PC uint16
+
+// Delay Timer
+var DT byte
 
 func main() {
 
+	KeyboardReadByte()
+
 	loadPong()
+
 
   	for {
   		emulateCycle()
@@ -237,41 +251,52 @@ Sprites are XORed onto the existing screen. If this causes any pixels to be eras
 
 	        switch(op & 0xF0FF) {
 	            case 0xF007:
-	            	fmt.Println("Not implemented")
+	            	// Fx07 - LD Vx, DT
+	            	V[x] = DT
 					
 					PC += 2	
 	            case 0xF00A:
-	            	fmt.Println("Not implemented")
-					
+	            	// Fx0A - LD Vx, K
+	            	key, _ := KeyboardReadByte()
+	            	V[x] = key
+
+					fmt.Println("Key pressed : %x", key)
+
+
 					PC += 2	
 
 	            case 0xF015:
+	            	// Fx15 - LD DT, Vx
 	            	fmt.Println("Not implemented")
 					
 					PC += 2	
 
 	            case 0xF018:
+	            	// Fx18 - LD ST, Vx
 	            	fmt.Println("Not implemented")
 					
 					PC += 2	
 
 	            case 0xF01E:
+	            	// Fx1E - ADD I, Vx
 	            	fmt.Println("Not implemented")
 					
 					PC += 2	
 
 	            case 0xF029:
+	            	// Fx29 - LD F, Vx
 	            	fmt.Println("Not implemented")
 					
 					PC += 2	
 
 	            case 0xF033:
+	            	// Fx33 - LD B, Vx
 	            	fmt.Println("Not implemented")
 					
 					PC += 2	
 
 	            case 0xF055:
-
+	            	// Fx55 - LD [I], Vx
 		            for i := uint16(0); byte(i) <= byte(x); i++ {
 		            	memory[I+i] = V[i] 
 		            }
@@ -279,7 +304,7 @@ Sprites are XORed onto the existing screen. If this causes any pixels to be eras
 					PC += 2	
 
 	            case 0xF065:
-
+	            	// Fx65 - LD Vx, [I]
 		            for i := uint16(0); byte(i) <= byte(x); i++ {
 		            	V[i] = memory[I+i]
 		            }
@@ -293,6 +318,23 @@ Sprites are XORed onto the existing screen. If this causes any pixels to be eras
 			fmt.Println("Wrong opcode, leaving the program")
 			os.Exit(0)
 	}
+}
+
+var keyMap = map[rune]byte{
+	'1': 0x01, '2': 0x02, '3': 0x03, '4': 0x0C,
+	'q': 0x04, 'w': 0x05, 'e': 0x06, 'r': 0x0D,
+	'a': 0x07, 's': 0x08, 'd': 0x09, 'f': 0x0E,
+	'z': 0x0A, 'x': 0x00, 'c': 0x0B, 'v': 0x0F,
+}
+
+func KeyboardReadByte() (byte, error) {
+	event := termbox.PollEvent()
+
+	key, ok := keyMap[event.Ch]
+	if !ok {
+		return 0x00, fmt.Errorf("unknown key: %v", event.Ch)
+	}
+	return key, nil
 }
 
 func Display(I byte, Vx byte, Vy byte) {
