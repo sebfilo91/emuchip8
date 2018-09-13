@@ -7,6 +7,7 @@ import(
     "time"
     "os"
     "github.com/nsf/termbox-go"
+    "graphics"
 )
 
 var opcode uint16
@@ -29,22 +30,28 @@ var PC uint16
 // Delay Timer
 var DT byte
 
+// Sound Timer
+var ST byte
+
 func main() {
 
-	KeyboardReadByte()
+	err := termbox.Init()
+	if err != nil {
+		panic(err)
+	}
 
-	loadPong()
+	loadRom("./roms/pong.rom")
+	//loadRom("./roms/test.rom")
 
-
-  	for {
+  	for i := 0; i < 50; i++ {
   		emulateCycle()
   	}
 }
 
-func loadPong() {
+func loadRom(rom string) {
 	// load at 0x200
 
-	dat, err := ioutil.ReadFile("./roms/pong.rom")
+	dat, err := ioutil.ReadFile(rom)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -54,12 +61,12 @@ func loadPong() {
 
 	for i := 0; i < len(dat); i++ {
 		memory[loadAddress + i] = dat[i]
-		fmt.Printf("%x ", memory[loadAddress + i] )
+		fmt.Printf("%#x ", memory[loadAddress + i] )
 	}
 
-	fmt.Printf("\nSTARTING MEMORY %x \n", memory[0x200])
-	fmt.Printf("STARTING PC %x \n", PC)
-	fmt.Printf("STARTING memory[PC] %x \n", memory[PC])
+	fmt.Printf("\nSTARTING MEMORY %#x \n", memory[0x200])
+	fmt.Printf("STARTING PC %#x \n", PC)
+	fmt.Printf("STARTING memory[PC] %#x \n", memory[PC])
 }
 
 func initialize() {
@@ -74,17 +81,25 @@ func emulateCycle() {
 func executeInstruction(op uint16) {
 	fmt.Printf("Op: %x\n", op)
 	switch(op & 0xF000) {
-		case 0x00E0: 
-			fmt.Println("CLS")
-		case 0x00EE:
-			fmt.Println("RET")
+		case 0x0000: 
+			switch(op & 0x00FF) {
+				case 0x00E0: 
+					fmt.Println("CLS")
+					//Clear graphics
+					PC += 2
+				case 0x00EE:
+					fmt.Println("RET")
+					PC = stack[SP]
+					SP--
+					PC += 2
+			}
 		case 0x1000:
 			nnn := 0x0FFF & op
 			PC = nnn
 		case 0x2000:
 			nnn := 0x0FFF & op
 			SP++;
-			stack[0] = PC
+			stack[SP] = PC
 			PC = nnn
 		case 0x3000:
 			x := (op & 0x0F00) >> 8
@@ -116,7 +131,6 @@ func executeInstruction(op uint16) {
 		case 0x6000:
 			x := (op & 0x0F00) >> 8
 			kk := op & 0x00FF
-			fmt.Println(kk)
 			V[x] = byte(kk)
 
 			PC += 2
@@ -230,19 +244,32 @@ Sprites are XORed onto the existing screen. If this causes any pixels to be eras
  			x := (op & 0x0F00) >> 8
  			y := (op & 0x00F0) >> 4
  			n := (op & 0x000F)
+
  			for i := uint16(0); i < n; i++ {
  				Display(memory[i], V[x], V[y])	
  			}
 					
 			PC += 2	
 		case 0xE000:
-			//TODO: Might have to remove the line below later
-			PC += 2	
-
+			x := op & 0x0F00
 			switch(op & 0xF0FF) {
 				case 0xE09E:
+	            	key, _ := KeyboardReadByte()
+					fmt.Println("Key pressed : %#x", key)
+
+	            	if key == V[x] {
+	            		PC += 2
+	            	}
+	            	PC += 2
 
 				case 0xE0A1:
+	            	key, _ := KeyboardReadByte()
+					fmt.Println("Key pressed : %#x", key)
+
+	            	if key != V[x] {
+	            		PC += 2
+	            	}
+	            	PC += 2
 
 			} 	
 		case 0xF000: 
@@ -260,38 +287,39 @@ Sprites are XORed onto the existing screen. If this causes any pixels to be eras
 	            	key, _ := KeyboardReadByte()
 	            	V[x] = key
 
-					fmt.Println("Key pressed : %x", key)
-
+					fmt.Println("Key pressed : %#x", key)
 
 					PC += 2	
 
 	            case 0xF015:
 	            	// Fx15 - LD DT, Vx
-	            	fmt.Println("Not implemented")
-					
+					DT = V[uint16(x)]
 					PC += 2	
 
 	            case 0xF018:
 	            	// Fx18 - LD ST, Vx
-	            	fmt.Println("Not implemented")
-					
+					ST = V[uint16(x)]
 					PC += 2	
 
 	            case 0xF01E:
 	            	// Fx1E - ADD I, Vx
-	            	fmt.Println("Not implemented")
-					
+					I = I + uint16(V[uint16(x)])
 					PC += 2	
 
 	            case 0xF029:
 	            	// Fx29 - LD F, Vx
-	            	fmt.Println("Not implemented")
+	            	//V[x]
+	            	//I = 
 					
+					// c.I = uint16(c.V[x]) * uint16(0x05) why ?
+
 					PC += 2	
 
 	            case 0xF033:
 	            	// Fx33 - LD B, Vx
-	            	fmt.Println("Not implemented")
+	            	memory[I] = V[uint16(x)] / 100
+	            	memory[I+1] = (V[uint16(x)] / 10) % 10
+	            	memory[I+2] = (V[uint16(x)] % 100) % 10
 					
 					PC += 2	
 
@@ -328,7 +356,10 @@ var keyMap = map[rune]byte{
 }
 
 func KeyboardReadByte() (byte, error) {
+	fmt.Printf("Press key !")
 	event := termbox.PollEvent()
+
+	fmt.Println(event)
 
 	key, ok := keyMap[event.Ch]
 	if !ok {
