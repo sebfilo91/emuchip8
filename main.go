@@ -7,7 +7,7 @@ import(
     "time"
     "os"
     "github.com/nsf/termbox-go"
-    "graphics"
+    graphics "emuchip8/graphics"
 )
 
 var opcode uint16
@@ -43,8 +43,9 @@ func main() {
 	loadRom("./roms/pong.rom")
 	//loadRom("./roms/test.rom")
 
-  	for i := 0; i < 50; i++ {
-  		emulateCycle()
+  	for i := 0; i < 30; i++ {
+  		emulateCycle(i)
+		time.Sleep(300 * time.Millisecond)
   	}
 }
 
@@ -53,7 +54,7 @@ func loadRom(rom string) {
 
 	dat, err := ioutil.ReadFile(rom)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("%e", err)
 	}
 
 	loadAddress := int(0x200)
@@ -61,46 +62,50 @@ func loadRom(rom string) {
 
 	for i := 0; i < len(dat); i++ {
 		memory[loadAddress + i] = dat[i]
-		fmt.Printf("%#x ", memory[loadAddress + i] )
+		//fmt.Printf("\n0x%04X ", memory[loadAddress + i] )
 	}
 
-	fmt.Printf("\nSTARTING MEMORY %#x \n", memory[0x200])
-	fmt.Printf("STARTING PC %#x \n", PC)
-	fmt.Printf("STARTING memory[PC] %#x \n", memory[PC])
+	fmt.Printf("\n\nSTARTING MEMORY 0x%04X \n", memory[0x200])
+	fmt.Printf("\nSTARTING PC 0x%04X \n", PC)
+	fmt.Printf("\nSTARTING memory[PC] 0x%04X \n", memory[PC])
 }
 
 func initialize() {
 
 }
 
-func emulateCycle() {
+func emulateCycle(ex int) {
 	opcode = uint16(memory[PC]) << 8 | uint16(memory[PC + 1])
+	fmt.Printf("\nex (%d) | opcode : 0x%04X", ex, opcode)
 	executeInstruction(opcode)
 }
 
 func executeInstruction(op uint16) {
-	fmt.Printf("Op: %x\n", op)
 	switch(op & 0xF000) {
 		case 0x0000: 
 			switch(op & 0x00FF) {
 				case 0x00E0: 
-					fmt.Println("CLS")
-					//Clear graphics
 					PC += 2
 				case 0x00EE:
-					fmt.Println("RET")
 					PC = stack[SP]
 					SP--
 					PC += 2
+				default:
+					fmt.Printf("Invalid opcode")
 			}
 		case 0x1000:
-			nnn := 0x0FFF & op
-			PC = nnn
+			fmt.Printf("\nBEGIN 0x1000: ----")
+			fmt.Printf("\nPC 0x%04X", PC)
+			PC = 0x0FFF & op
+			fmt.Printf("\nPC = nnn 0x%04X", PC)
+			fmt.Printf("\nmemory[PC] 0x%04X", memory[PC])
+			fmt.Printf("\nmemory[PC+1] 0x%04X", memory[PC+1])
+
+			fmt.Printf("\nEND OF 0x1000: ----\n")
 		case 0x2000:
-			nnn := 0x0FFF & op
 			SP++;
 			stack[SP] = PC
-			PC = nnn
+			PC = 0x0FFF & op
 		case 0x3000:
 			x := (op & 0x0F00) >> 8
 			kk := (op & 0x00FF)
@@ -204,6 +209,8 @@ func executeInstruction(op uint16) {
 
 				case 0x800E:
 					PC += 2	
+				default:
+					fmt.Printf("Invalid opcode")
 
 			}
 
@@ -214,8 +221,7 @@ func executeInstruction(op uint16) {
 				PC += 2
 			}
 		case 0xA000:
-			nnn := op & 0x0FFF
-			I = nnn
+			I = op & 0x0FFF
 
 			PC += 2	
 		case 0xB000:
@@ -231,16 +237,7 @@ func executeInstruction(op uint16) {
 			PC += 2	
 
 		case 0xD000:
-			/*Dxyn - DRW Vx, Vy, nibble
-Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
 
-The interpreter reads n bytes from memory, starting at the address stored in I. 
-These bytes are then displayed as sprites on screen at coordinates (Vx, Vy). 
-Sprites are XORed onto the existing screen. If this causes any pixels to be erased, VF is set to 1, otherwise it is set to 0.
- If the sprite is positioned so part of it is outside the coordinates of the display, it wraps around to the opposite side of the screen.
- See instruction 8xy3 for more information on XOR, and section 2.4, Display, for more information on the Chip-8 screen and sprites.
-
-			*/
  			x := (op & 0x0F00) >> 8
  			y := (op & 0x00F0) >> 4
  			n := (op & 0x000F)
@@ -255,7 +252,7 @@ Sprites are XORed onto the existing screen. If this causes any pixels to be eras
 			switch(op & 0xF0FF) {
 				case 0xE09E:
 	            	key, _ := KeyboardReadByte()
-					fmt.Println("Key pressed : %#x", key)
+					fmt.Printf("\nKey pressed : 0x%04X", key)
 
 	            	if key == V[x] {
 	            		PC += 2
@@ -264,17 +261,19 @@ Sprites are XORed onto the existing screen. If this causes any pixels to be eras
 
 				case 0xE0A1:
 	            	key, _ := KeyboardReadByte()
-					fmt.Println("Key pressed : %#x", key)
+					fmt.Printf("\nKey pressed : 0x%04X", key)
 
 	            	if key != V[x] {
 	            		PC += 2
 	            	}
 	            	PC += 2
+				default:
+					fmt.Printf("Invalid opcode")
 
 			} 	
 		case 0xF000: 
 	        x := (op & 0x0F00) >> 8
-	        fmt.Printf("%v", x)
+	        fmt.Printf("\n%v", x)
 
 	        switch(op & 0xF0FF) {
 	            case 0xF007:
@@ -287,29 +286,30 @@ Sprites are XORed onto the existing screen. If this causes any pixels to be eras
 	            	key, _ := KeyboardReadByte()
 	            	V[x] = key
 
-					fmt.Println("Key pressed : %#x", key)
+					fmt.Printf("\nKey pressed : 0x%04X", key)
 
 					PC += 2	
 
 	            case 0xF015:
 	            	// Fx15 - LD DT, Vx
-					DT = V[uint16(x)]
+					DT = V[x]
 					PC += 2	
 
 	            case 0xF018:
 	            	// Fx18 - LD ST, Vx
-					ST = V[uint16(x)]
+					ST = V[x]
 					PC += 2	
 
 	            case 0xF01E:
 	            	// Fx1E - ADD I, Vx
-					I = I + uint16(V[uint16(x)])
+					I = I + uint16(V[x])
 					PC += 2	
 
 	            case 0xF029:
 	            	// Fx29 - LD F, Vx
 	            	//V[x]
 	            	//I = 
+	            	I = uint16(V[x]) * uint16(0x05)
 					
 					// c.I = uint16(c.V[x]) * uint16(0x05) why ?
 
@@ -317,9 +317,9 @@ Sprites are XORed onto the existing screen. If this causes any pixels to be eras
 
 	            case 0xF033:
 	            	// Fx33 - LD B, Vx
-	            	memory[I] = V[uint16(x)] / 100
-	            	memory[I+1] = (V[uint16(x)] / 10) % 10
-	            	memory[I+2] = (V[uint16(x)] % 100) % 10
+	            	memory[I] = V[x] / 100
+	            	memory[I+1] = (V[x] / 10) % 10
+	            	memory[I+2] = (V[x] % 100) % 10
 					
 					PC += 2	
 
@@ -339,11 +339,11 @@ Sprites are XORed onto the existing screen. If this causes any pixels to be eras
 					
 					PC += 2	
 	            default:
-	            	fmt.Println("Default")
+	            	fmt.Printf("\nDefault")
 	        }
 
 		default:
-			fmt.Println("Wrong opcode, leaving the program")
+			fmt.Printf("\nWrong opcode, leaving the program")
 			os.Exit(0)
 	}
 }
@@ -356,10 +356,10 @@ var keyMap = map[rune]byte{
 }
 
 func KeyboardReadByte() (byte, error) {
-	fmt.Printf("Press key !")
+	fmt.Printf("\nPress key !")
 	event := termbox.PollEvent()
 
-	fmt.Println(event)
+	fmt.Printf("%e", event)
 
 	key, ok := keyMap[event.Ch]
 	if !ok {
@@ -369,6 +369,6 @@ func KeyboardReadByte() (byte, error) {
 }
 
 func Display(I byte, Vx byte, Vy byte) {
-
+	graphics.Draw(int(Vx), int(Vy), rune(Vy))
 }
 
