@@ -10,6 +10,11 @@ import "github.com/nsf/termbox-go"
 
 var output_mode = termbox.OutputNormal
 
+const screenWidth = 64
+const screenHeight = 32
+
+var pixels [screenWidth * screenHeight]byte
+
 func Init() {
 	err := termbox.Init()
 	if err != nil {
@@ -18,9 +23,27 @@ func Init() {
 	defer termbox.Close()
 }
 
-func Draw(sx int, sy int, char rune) {
-	termbox.SetCell(sx, sy, char, termbox.ColorDefault, termbox.ColorDefault)
+func Draw(sx int, sy int, sprite []byte) bool {
+	n := len(sprite)
+	collision := false
+
+	for y := 0; y < n; y++ {
+		pixelRow := sprite[y]
+
+		for x := 0; x < 8; x++ {
+
+			// Pixel is set to one
+			if(pixelRow & (0x80 >> byte(x)) != 0) {
+
+			} 
+		}
+	}
+
+
+	//termbox.SetCell(sx, sy, char, termbox.ColorDefault, termbox.ColorDefault)
 	termbox.Flush()
+
+	return collision
 }
 
 /*func draw_all() {

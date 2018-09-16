@@ -10,6 +10,8 @@ import(
     graphics "emuchip8/graphics"
 )
 
+var debugEnabled = false
+
 var opcode uint16
 
 var memory [4096]byte
@@ -54,7 +56,7 @@ func loadRom(rom string) {
 
 	dat, err := ioutil.ReadFile(rom)
 	if err != nil {
-		fmt.Printf("%e", err)
+		debug("%e", err)
 	}
 
 	loadAddress := int(0x200)
@@ -62,12 +64,12 @@ func loadRom(rom string) {
 
 	for i := 0; i < len(dat); i++ {
 		memory[loadAddress + i] = dat[i]
-		//fmt.Printf("\n0x%04X ", memory[loadAddress + i] )
+		//debug("\n0x%04X ", memory[loadAddress + i] )
 	}
 
-	fmt.Printf("\n\nSTARTING MEMORY 0x%04X \n", memory[0x200])
-	fmt.Printf("\nSTARTING PC 0x%04X \n", PC)
-	fmt.Printf("\nSTARTING memory[PC] 0x%04X \n", memory[PC])
+	debug("\n\nSTARTING MEMORY 0x%04X \n", memory[0x200])
+	debug("\nSTARTING PC 0x%04X \n", PC)
+	debug("\nSTARTING memory[PC] 0x%04X \n", memory[PC])
 }
 
 func initialize() {
@@ -76,7 +78,7 @@ func initialize() {
 
 func emulateCycle(ex int) {
 	opcode = uint16(memory[PC]) << 8 | uint16(memory[PC + 1])
-	fmt.Printf("\nex (%d) | opcode : 0x%04X", ex, opcode)
+	debug("\nex (%d) | opcode : 0x%04X", ex, opcode)
 	executeInstruction(opcode)
 }
 
@@ -91,17 +93,17 @@ func executeInstruction(op uint16) {
 					SP--
 					PC += 2
 				default:
-					fmt.Printf("Invalid opcode")
+					debug("Invalid opcode")
 			}
 		case 0x1000:
-			fmt.Printf("\nBEGIN 0x1000: ----")
-			fmt.Printf("\nPC 0x%04X", PC)
+			debug("\nBEGIN 0x1000: ----")
+			debug("\nPC 0x%04X", PC)
 			PC = 0x0FFF & op
-			fmt.Printf("\nPC = nnn 0x%04X", PC)
-			fmt.Printf("\nmemory[PC] 0x%04X", memory[PC])
-			fmt.Printf("\nmemory[PC+1] 0x%04X", memory[PC+1])
+			debug("\nPC = nnn 0x%04X", PC)
+			debug("\nmemory[PC] 0x%04X", memory[PC])
+			debug("\nmemory[PC+1] 0x%04X", memory[PC+1])
 
-			fmt.Printf("\nEND OF 0x1000: ----\n")
+			debug("\nEND OF 0x1000: ----\n")
 		case 0x2000:
 			SP++;
 			stack[SP] = PC
@@ -210,7 +212,7 @@ func executeInstruction(op uint16) {
 				case 0x800E:
 					PC += 2	
 				default:
-					fmt.Printf("Invalid opcode")
+					debug("Invalid opcode")
 
 			}
 
@@ -243,7 +245,7 @@ func executeInstruction(op uint16) {
  			n := (op & 0x000F)
 
  			for i := uint16(0); i < n; i++ {
- 				Display(memory[i], V[x], V[y])	
+ 				Display(V[x], V[y], memory[I:I+n])	
  			}
 					
 			PC += 2	
@@ -252,7 +254,7 @@ func executeInstruction(op uint16) {
 			switch(op & 0xF0FF) {
 				case 0xE09E:
 	            	key, _ := KeyboardReadByte()
-					fmt.Printf("\nKey pressed : 0x%04X", key)
+					debug("\nKey pressed : 0x%04X", key)
 
 	            	if key == V[x] {
 	            		PC += 2
@@ -261,19 +263,19 @@ func executeInstruction(op uint16) {
 
 				case 0xE0A1:
 	            	key, _ := KeyboardReadByte()
-					fmt.Printf("\nKey pressed : 0x%04X", key)
+					debug("\nKey pressed : 0x%04X", key)
 
 	            	if key != V[x] {
 	            		PC += 2
 	            	}
 	            	PC += 2
 				default:
-					fmt.Printf("Invalid opcode")
+					debug("Invalid opcode")
 
 			} 	
 		case 0xF000: 
 	        x := (op & 0x0F00) >> 8
-	        fmt.Printf("\n%v", x)
+	        debug("\n%v", x)
 
 	        switch(op & 0xF0FF) {
 	            case 0xF007:
@@ -286,7 +288,7 @@ func executeInstruction(op uint16) {
 	            	key, _ := KeyboardReadByte()
 	            	V[x] = key
 
-					fmt.Printf("\nKey pressed : 0x%04X", key)
+					debug("\nKey pressed : 0x%04X", key)
 
 					PC += 2	
 
@@ -339,11 +341,11 @@ func executeInstruction(op uint16) {
 					
 					PC += 2	
 	            default:
-	            	fmt.Printf("\nDefault")
+	            	debug("\nDefault")
 	        }
 
 		default:
-			fmt.Printf("\nWrong opcode, leaving the program")
+			debug("\nWrong opcode, leaving the program")
 			os.Exit(0)
 	}
 }
@@ -356,10 +358,10 @@ var keyMap = map[rune]byte{
 }
 
 func KeyboardReadByte() (byte, error) {
-	fmt.Printf("\nPress key !")
+	debug("\nPress key !")
 	event := termbox.PollEvent()
 
-	fmt.Printf("%e", event)
+	debug("%e", event)
 
 	key, ok := keyMap[event.Ch]
 	if !ok {
@@ -368,7 +370,12 @@ func KeyboardReadByte() (byte, error) {
 	return key, nil
 }
 
-func Display(I byte, Vx byte, Vy byte) {
-	graphics.Draw(int(Vx), int(Vy), rune(Vy))
+func Display(Vx byte, Vy byte, memorySlice []byte) {
+	graphics.Draw(int(Vx), int(Vy), memorySlice)
 }
 
+func debug(msg string, object ...interface{}) {
+	if debugEnabled == true {
+		fmt.Printf(msg, object)
+	}
+}
