@@ -42,12 +42,11 @@ func main() {
 		panic(err)
 	}
 
-	loadRom("./roms/pong.rom")
+	loadRom("./roms/chip8-picture.rom")
 	//loadRom("./roms/test.rom")
 
-  	for i := 0; i < 30; i++ {
+  	for i := 0; i < 3000; i++ {
   		emulateCycle(i)
-		time.Sleep(300 * time.Millisecond)
   	}
 }
 
@@ -244,10 +243,12 @@ func executeInstruction(op uint16) {
  			y := (op & 0x00F0) >> 4
  			n := (op & 0x000F)
 
- 			for i := uint16(0); i < n; i++ {
- 				Display(V[x], V[y], memory[I:I+n])	
- 			}
-					
+			if(graphics.Draw(int(V[x]), int(V[y]), memory[I:I+n])) {
+				VF = 0x01
+			}
+
+			graphics.Render()
+
 			PC += 2	
 		case 0xE000:
 			x := op & 0x0F00
@@ -370,12 +371,8 @@ func KeyboardReadByte() (byte, error) {
 	return key, nil
 }
 
-func Display(Vx byte, Vy byte, memorySlice []byte) {
-	graphics.Draw(int(Vx), int(Vy), memorySlice)
-}
-
 func debug(msg string, object ...interface{}) {
 	if debugEnabled == true {
-		fmt.Printf(msg, object)
+		fmt.Printf(msg, object...)
 	}
 }
