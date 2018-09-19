@@ -22,8 +22,6 @@ var SP uint16
 
 var V [16]byte
 
-var VF byte
-
 var I uint16
 
 // Program Counter
@@ -35,6 +33,25 @@ var DT byte
 // Sound Timer
 var ST byte
 
+var Fonts = []byte{
+	0xF0, 0x90, 0x90, 0x90, 0xF0,
+	0x20, 0x60, 0x20, 0x20, 0x70,
+	0xF0, 0x10, 0xF0, 0x80, 0xF0,
+	0xF0, 0x10, 0xF0, 0x10, 0xF0,
+	0x90, 0x90, 0xF0, 0x10, 0x10,
+	0xF0, 0x80, 0xF0, 0x10, 0xF0,
+	0xF0, 0x80, 0xF0, 0x90, 0xF0,
+	0xF0, 0x10, 0x20, 0x40, 0x40,
+	0xF0, 0x90, 0xF0, 0x90, 0xF0,
+	0xF0, 0x90, 0xF0, 0x10, 0xF0,
+	0xF0, 0x90, 0xF0, 0x90, 0x90,
+	0xE0, 0x90, 0xE0, 0x90, 0xE0,
+	0xF0, 0x80, 0x80, 0x80, 0xF0,
+	0xE0, 0x90, 0x90, 0x90, 0xE0,
+	0xF0, 0x80, 0xF0, 0x80, 0xF0,
+	0xF0, 0x80, 0xF0, 0x80, 0x80,
+}
+
 func main() {
 
 	err := termbox.Init()
@@ -42,12 +59,21 @@ func main() {
 		panic(err)
 	}
 
-	loadRom("./roms/chip8-picture.rom")
+	loadFonts()
+	loadRom("./roms/tetris.rom")
 	//loadRom("./roms/test.rom")
 
-  	for i := 0; i < 3000; i++ {
-  		emulateCycle(i)
+  	for i := 0; i < 1000000; i++ {
+		emulateCycle(i)
+		time.Sleep(10* time.Millisecond)
   	}
+}
+
+func loadFonts() {
+	for i := 0; i < len(Fonts); i++ {
+		memory[0x0 + i] = Fonts[i]
+		//debug("\n0x%04X ", memory[loadAddress + i] )
+	}
 }
 
 func loadRom(rom string) {
@@ -177,16 +203,16 @@ func executeInstruction(op uint16) {
 					if(result > 0xFF) {
 						carry = 1
 					}
-					VF = carry
+					V[0xF] = carry
 					V[x] = byte(result)
 
 					PC += 2
 				case 0x8005:
 					result := uint16(V[x]) - uint16(V[y])
 
-					VF = 0
+					V[0xF] = 0
 					if V[x] > V[y] {
-						VF = 1
+						V[0xF] = 1
 					}
 
 					V[x] = byte(result)
@@ -199,9 +225,9 @@ func executeInstruction(op uint16) {
 				case 0x8007:
 					result := uint16(V[y]) - uint16(V[x])
 
-					VF = 0
+					V[0xF] = 0
 					if V[y] > V[x] {
-						VF = 1
+						V[0xF] = 1
 					}
 
 					V[x] = byte(result)
@@ -244,14 +270,14 @@ func executeInstruction(op uint16) {
  			n := (op & 0x000F)
 
 			if(graphics.Draw(int(V[x]), int(V[y]), memory[I:I+n])) {
-				VF = 0x01
+				V[0xF] = 0x01
 			}
 
 			graphics.Render()
 
 			PC += 2	
 		case 0xE000:
-			x := op & 0x0F00
+			x := (op & 0x0F00) >> 8
 			switch(op & 0xF0FF) {
 				case 0xE09E:
 	            	key, _ := KeyboardReadByte()
@@ -310,11 +336,7 @@ func executeInstruction(op uint16) {
 
 	            case 0xF029:
 	            	// Fx29 - LD F, Vx
-	            	//V[x]
-	            	//I = 
 	            	I = uint16(V[x]) * uint16(0x05)
-					
-					// c.I = uint16(c.V[x]) * uint16(0x05) why ?
 
 					PC += 2	
 
