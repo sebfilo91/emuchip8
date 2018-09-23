@@ -78,38 +78,3 @@ func debug(msg string, object ...interface{}) {
 		fmt.Printf(msg, object...)
 	}
 }
-
-/*func draw_all() {
-	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
-
-	switch output_mode {
-
-	case termbox.OutputNormal:
-		print_one(12, 12)
-	}
-
-	termbox.Flush()
-}*/
-
-
-/*func main() {
-	err := termbox.Init()
-	if err != nil {
-		panic(err)
-	}
-	defer termbox.Close()
-
-	draw_all()
-loop:
-	for {
-		switch ev := termbox.PollEvent(); ev.Type {
-		case termbox.EventKey:
-			switch ev.Key {
-				case termbox.KeyEsc:
-					break loop
-			}
-		case termbox.EventResize:
-			draw_all()
-		}
-	}
-}*/
