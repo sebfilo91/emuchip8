@@ -68,10 +68,13 @@ func Render() {
 		for y := 0; y < screenHeight; y++ {
 			if(pixels[(y*screenWidth) + x] == 0x1) {
 				termbox.SetCell(x, y, rune('*'), termbox.ColorDefault, termbox.ColorDefault)
-				termbox.Flush()
-			}
+			} /*else {
+				termbox.SetCell(x, y, rune(' '), termbox.ColorDefault, termbox.ColorDefault)
+			}*/
 		}
 	}
+
+	termbox.Flush()
 }
 
 

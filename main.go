@@ -65,7 +65,6 @@ func main() {
 
   	for i := 0; i < 1000000; i++ {
 		emulateCycle(i)
-		time.Sleep(10* time.Millisecond)
   	}
 }
 
@@ -121,14 +120,7 @@ func executeInstruction(op uint16) {
 					debug("Invalid opcode")
 			}
 		case 0x1000:
-			debug("\nBEGIN 0x1000: ----")
-			debug("\nPC 0x%04X", PC)
 			PC = 0x0FFF & op
-			debug("\nPC = nnn 0x%04X", PC)
-			debug("\nmemory[PC] 0x%04X", memory[PC])
-			debug("\nmemory[PC+1] 0x%04X", memory[PC+1])
-
-			debug("\nEND OF 0x1000: ----\n")
 		case 0x2000:
 			SP++;
 			stack[SP] = PC
