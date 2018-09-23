@@ -62,11 +62,12 @@ func main() {
 	}
 
 	loadFonts()
-	loadRom("./roms/pong.rom")
+	loadRom("./roms/tetris.rom")
 	//loadRom("./roms/test.rom")
 
   	for {
 		emulateCycle(0)
+		time.Sleep(16 * time.Millisecond)
   	}
 }
 
