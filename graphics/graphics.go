@@ -18,7 +18,7 @@ const screenHeight = 32
 
 var pixels [screenWidth * screenHeight]byte
 
-var debugEnabled = false
+var debugEnabled = true
 
 func Init() {
 	err := termbox.Init()
@@ -26,6 +26,13 @@ func Init() {
 		panic(err)
 	}
 	defer termbox.Close()
+}
+
+func Clear() {
+	debug("Clear")
+	for i := 0; i < len(pixels); i++ {
+		pixels[i] = 0
+	}
 }
 
 func Draw(x int, y int, sprite []byte) bool {
@@ -47,30 +54,18 @@ func Draw(x int, y int, sprite []byte) bool {
 			} 
 		}
 	}
-	debug("\n --DRAW --")
-	for i := 0; i < len(pixels); i++ {
-		if(pixels[i] != 0) {
-			debug("%v ", pixels[i])
-		}
-	}
 
 	return collision
 }
 
 func Render() {
-	debug("\n --RENDER --")
-	for i := 0; i < len(pixels); i++ {
-		if(pixels[i] != 0) {
-			debug("%v ", pixels[i])
-		}
-	}
 	for x := 0; x < screenWidth; x++ {
 		for y := 0; y < screenHeight; y++ {
 			if(pixels[(y*screenWidth) + x] == 0x1) {
 				termbox.SetCell(x, y, rune('*'), termbox.ColorDefault, termbox.ColorDefault)
-			} /*else {
+			} else {
 				termbox.SetCell(x, y, rune(' '), termbox.ColorDefault, termbox.ColorDefault)
-			}*/
+			}
 		}
 	}
 

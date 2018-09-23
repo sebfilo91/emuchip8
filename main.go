@@ -10,6 +10,8 @@ import(
     graphics "emuchip8/graphics"
 )
 
+//Documentation http://mattmik.com/files/chip8/mastering/chip8.html
+
 var debugEnabled = false
 
 var opcode uint16
@@ -60,11 +62,11 @@ func main() {
 	}
 
 	loadFonts()
-	loadRom("./roms/tetris.rom")
+	loadRom("./roms/pong.rom")
 	//loadRom("./roms/test.rom")
 
-  	for i := 0; i < 1000000; i++ {
-		emulateCycle(i)
+  	for {
+		emulateCycle(0)
   	}
 }
 
@@ -111,10 +113,12 @@ func executeInstruction(op uint16) {
 		case 0x0000: 
 			switch(op & 0x00FF) {
 				case 0x00E0: 
+					fmt.Println("Clear graphics")
+					graphics.Clear()
 					PC += 2
 				case 0x00EE:
-					PC = stack[SP]
 					SP--
+					PC = stack[SP]
 					PC += 2
 				default:
 					debug("Invalid opcode")
@@ -122,8 +126,8 @@ func executeInstruction(op uint16) {
 		case 0x1000:
 			PC = 0x0FFF & op
 		case 0x2000:
-			SP++;
 			stack[SP] = PC
+			SP++;
 			PC = 0x0FFF & op
 		case 0x3000:
 			x := (op & 0x0F00) >> 8
@@ -211,6 +215,15 @@ func executeInstruction(op uint16) {
 
 					PC += 2
 				case 0x8006:
+					/*
+                    V[0xF] = V[(opcode & 0x0F00) >> 8] & 0x1;
+                    V[(opcode & 0x0F00) >> 8] >>= 1;
+					*/
+					if (V[x] & 0x01) == 0x01 {
+						V[0xF] = 1
+					}
+
+					V[x] = V[x] / 2
 
 					PC += 2	
 
@@ -227,6 +240,12 @@ func executeInstruction(op uint16) {
 					PC += 2
 
 				case 0x800E:
+					if (V[x] & 0x80) == 0x80 {
+						V[0xF] = 1
+					}
+
+					V[x] = V[x] * 2
+
 					PC += 2	
 				default:
 					debug("Invalid opcode")
